@@ -4,6 +4,7 @@
 #from __future__ import division
 import numpy as np
 import scipy as sp
+import scipy.interpolate as spinterpolate
 from scipy import integrate
 
 def find_nearest(array, value):
@@ -185,9 +186,9 @@ def TropD_Calculate_TropopauseHeight(T ,P, Z=None):
   Pt = np.zeros((np.shape(T)[0]*np.shape(T)[1], 1))
   
   for j in range(np.shape(Gamma)[0]):
-    G_f = sp.interpolate.interp1d(Pk1, Gamma[j,:], kind='linear', fill_value='extrapolate')
+    G_f = spinterpolate.interp1d(Pk1, Gamma[j,:], kind='linear', fill_value='extrapolate')
     G1 = G_f(PI)
-    T2_f = sp.interpolate.interp1d(Pk1,T2[j,:], kind='linear', fill_value='extrapolate')
+    T2_f = spinterpolate.interp1d(Pk1,T2[j,:], kind='linear', fill_value='extrapolate')
     T1 = T2_f(PI)
     idx = np.squeeze(np.where((G1 <=2) & (PI < (550*100)**k) & (PI > (75*100)**k)))
     Pidx = PI[idx] 
@@ -211,7 +212,7 @@ def TropD_Calculate_TropopauseHeight(T ,P, Z=None):
     Ht =  np.zeros((np.shape(T)[0]*np.shape(T)[1]))
     
     for j in range(np.shape(Ht)[0]):
-      f = sp.interpolate.interp1d(P, Zt[j,:])
+      f = spinterpolate.interp1d(P, Zt[j,:])
       Ht[j] = f(Pt[j])
 
     Ht = np.reshape(Ht, (np.shape(T)[0], np.shape(T)[1]))
