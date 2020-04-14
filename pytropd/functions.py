@@ -6,6 +6,7 @@ import numpy as np
 import scipy as sp
 import scipy.interpolate as spinterpolate
 from scipy import integrate
+import scipy.stats as ss
 
 def find_nearest(array, value):
   ''' Find the index of the item in the array nearest to the value
@@ -87,9 +88,14 @@ def TropD_Calculate_Mon2Season(Fm, season=np.arange(12), m=0):
   except AssertionError:
     print('season can only include indices from 1 to 12')
   
+  print('1', Fm.shape)
+  #print(Fm[0,30,35])
   End_Index = np.shape(Fm)[0]-m+1 - np.mod(np.shape(Fm)[0]-m+1,12)  
   Fm = Fm[m:End_Index,...]
+  print('2', Fm.shape)
   F = Fm[m + season[0]::12,...]
+  print('3', F.shape)
+  print(F[0,30,35])
   if len(season) > 1:
     for s in season[1:]:
       F = F + Fm[m + s::12,...]
@@ -261,4 +267,46 @@ def TropD_Calculate_ZeroCrossing(F, lat, lat_uncertainty=0.0):
   else:
     ZC = lat[a1] - F[a1]*(lat[a1+1]-lat[a1])/(F[a1+1]-F[a1])
   return ZC
+
+#********************************************************************************************************
+def regress(x, y, x1=None, x2=None, alpha=0):
+
+   if x1!=None:
+       x1 = np.where(x==x1)[0][0]
+   else:
+       x1=0
+   if x2!=None:
+       x2 = np.where(x==x2)[0][0]
+   else:
+       x2=x.shape[0]
+
+   slope, intercept, r_value, p_value, std_err = ss.linregress(x[x1:x2+1], y[x1:x2+1])
+   clim = np.mean(y[x1:x2+1])
+
+   #**************************************************
+   # confidence intervals on slopes
+   def slope_error(N, x, y):
+
+      residuals = y - (slope*x + intercept)
+      ss_res = np.sum(residuals**2)
+      ss_tot = np.sum((y-np.mean(y))**2)
+      r_squared = 1 - (ss_res/ss_tot)
+      sx2 = np.sum((x-np.mean(x))**2)
+      sy2 = np.sum((y-np.mean(y))**2)
+      error = np.sqrt( ((1-r_squared)*sy2) / ((N-2)*sx2) )
+
+      return error
+   #**************************************************
+
+   # bool ttest
+   N = x2-x1+1
+
+   #tscore = abs(slope/std_err)
+   error = slope_error(N, x[x1:x2+1], y[x1:x2+1]) 
+   tscore = abs(slope/error)
+
+   tcrit = ss.t.ppf(1-alpha/2., N-2)
+   ttest = tscore < tcrit
+
+   return (slope, intercept, clim, ttest)
     

@@ -9,12 +9,15 @@ import pytropd.metrics as pyt
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import pytropd.functions as pytf
+import sys
 
 # Example codes for using the TropD package to calculate tropical width metrics
 # The code assumes that the current directory is ... tropd/pytropd/
 ## Set display and meta parameters
 y1 = 2020
 y2 = 2099
+seas = 'SON'
+dseas = {'MAM':[2,3,4],'JJA':[5,6,7],'SON':[8,9,10]}
 time = np.linspace(y1,y2+1,12*(y2-y1+1)+1)
 time = (time[:-1] + time[1:]) / 2
 red_color     = (1,0.3,0.4)
@@ -298,90 +301,109 @@ dirname = os.path.dirname(__file__)
 #plt.show()
 
 ## 5) EDJ -- Eddy Driven Jet (EDJ) latitude
-#read zonal wind U(time,lat,lev), latitude and level
+fEDJ = open('EDJ_'+seas, 'w')
 
-#f_U = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/ua.nc'),'r')
-#U = f_U.variables['ua'][:].copy()
-#lat = f_U.variables['lat'][:].copy()
-#lev = f_U.variables['lev'][:].copy()
+for i in range(1,21):
+   #read zonal wind U(time,lat,lev), latitude and level
+   f_U = netcdf.netcdf_file('/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.U.202001-209912.nc', 'r')
+   U = f_U.variables['U'][:].copy()
+   lat = f_U.variables['lat'][:].copy()
+   lev = f_U.variables['level'][:].copy()
+   f_U.close()
+   
+   U = U[:,:,:,0] # remove longitude dimension (zonal meaned)
+   U = np.moveaxis(U, 0, 2) # should be (lev,lat,time); have (time, lev, lat)
+   print(U.shape) # should be (41, 192, 960)
+   
+   ''' xarray, testing speed
+   # try xarray
+   t0 = pytime.time(); print(t0)
+   
+   #f_Z = xr.open_dataset('/Volumes/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.004/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.004.cam.h0.U.202001-209912.nc', cache=False)
+   f_Z = xr.open_dataset('/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.010/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.010.cam.h0.U.202001-209912.nc', cache=False)
+   #Z = f_Z['U']
+   #Z = Z.mean('lon')
+   
+   #print(Z)
+   
+   f_Z.close()
+   t1 = pytime.time(); print(t1)
+   
+   dt = t1-t0; print(dt)
+   '''
+   
+   #Change axes of u to be [time, lat]
+   U = np.transpose(U, (2,1,0))
+   print(U.shape)
+   
+   
+   Phi_edj_nh = np.zeros((np.shape(U)[0],)) # latitude of monthly NH EDJ
+   Phi_edj_sh = np.zeros((np.shape(U)[0],)) # latitude of monthly SH EDJ
+   
+   for j in range(np.shape(U)[0]):
+     Phi_edj_sh[j], Phi_edj_nh[j] = pyt.TropD_Metric_EDJ(U[j,:,:,] ,lat, lev, method='max')
+   
+   # Calculate EDJ latitude from annual mean
+   U_ANN = pytf.TropD_Calculate_Mon2Season(U, season=np.arange(12))
+   
+   Phi_edj_nh_ANN = np.zeros((np.shape(U_ANN)[0],)) # latitude of NH EDJ from annual mean U  
+   Phi_edj_sh_ANN = np.zeros((np.shape(U_ANN)[0],)) # latitude of SH EDJ from annual mean U
+   
+   for j in range(np.shape(U_ANN)[0]):
+     Phi_edj_sh_ANN[j], Phi_edj_nh_ANN[j] = pyt.TropD_Metric_EDJ(U_ANN[j,:,:], lat, lev)
+   
+     
+   # AB - calculate EDJ latitude from seasonal means
+   print('U shape', U.shape)
+   print(U[0:12,30,35])
+   U_seas = pytf.TropD_Calculate_Mon2Season(U, season=dseas[seas]) #m=11; [0,1,2] doesn't work for DJF
+   
+   Phi_edj_nh_seas = np.zeros((np.shape(U_seas)[0],)) # latitude of NH EDJ from annual mean U  
+   Phi_edj_sh_seas = np.zeros((np.shape(U_seas)[0],)) # latitude of SH EDJ from annual mean U
+   
+   for j in range(np.shape(U_seas)[0]):
+     Phi_edj_sh_seas[j], Phi_edj_nh_seas[j] = pyt.TropD_Metric_EDJ(U_seas[j,:,:], lat, lev)
+     
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_edj_nh_seas)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_edj_sh_seas)
+   print(slope_NH*10)
+   print(slope_SH*10)
+     
+   '''
+   plt.figure(7)
+   plt.subplot(211)
+   plt.plot(time,Phi_edj_nh,linewidth=1,color=green_color,\
+       label='Latitude of EDJ from monthly mean U')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_edj_nh_ANN,linewidth=2,color=blue_color,\
+       label='Latitude of EDJ from annual mean U')
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_edj_nh, season=np.arange(12)),color='k',linewidth=2,\
+       label='Latitude of EDJ from annual mean of monthly metric values')
+   plt.ylabel('NH EDJ latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(time,Phi_edj_sh,linewidth=1,color=green_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_edj_sh_ANN,linewidth=2,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_edj_sh, season=np.arange(12)),color='k',linewidth=2)
+   plt.xlabel('Year')
+   plt.ylabel('SH EDJ latitude')
+   plt.show()
+   '''
+   
+   #seasonal figure
+   plt.figure(8)
+   plt.subplot(211)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_edj_nh_seas,linewidth=2,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5, slope_NH*(np.arange(y1,y2+1) + 0.5)+intercept_NH)
+   plt.ylabel('NH EDJ latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_edj_sh_seas,linewidth=2,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5, slope_SH*(np.arange(y1,y2+1) + 0.5)+intercept_SH)
+   plt.xlabel('Year')
+   plt.ylabel('SH EDJ latitude')
 
-#t0 = pytime.time(); print(t0)
-#
-#f_U = netcdf.netcdf_file('/Volumes/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.001/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.001.cam.h0.U.202001-209912.nc', 'r')
-##f_U = netcdf.netcdf_file('/Volumes/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.001/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.001.cam.h0.zm.U.202001-209912.nc', 'r')
-#U = f_U.variables['U'][:].copy()
-#lat = f_U.variables['lat'][:].copy()
-#lev = f_U.variables['level'][:].copy()
-#f_U.close()
-#
-#
-#print(U.shape)
-#print(lat.shape)
-#print(lev.shape)
-#
-## should be (lev,lat,time) (37, 121, 456)
-## have (time, lev, lat)
-#U = np.mean(U, axis=3)
-##U = U[:,:,:,0]
-#
-#U = np.moveaxis(U, 0, 2)
-#print(U.shape)
-#t1 = pytime.time(); print(t1)
-#
-#dt = t1-t0; print(dt)
-#quit()
-
-# try xarray
-t0 = pytime.time(); print(t0)
-
-f_Z = xr.open_dataset('/Volumes/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.004/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.004.cam.h0.U.202001-209912.nc', cache=False)
-#Z = f_Z['U']
-#Z = Z.mean('lon')
-
-#print(Z)
-
-f_Z.close()
-t1 = pytime.time(); print(t1)
-
-dt = t1-t0; print(dt)
-quit()
-
-
-#Change axes of u to be [time, lat]
-U = np.transpose(U, (2,1,0))
-
-Phi_edj_nh = np.zeros((np.shape(U)[0],)) # latitude of monthly NH EDJ
-Phi_edj_sh = np.zeros((np.shape(U)[0],)) # latitude of monthly SH EDJ
-
-for j in range(np.shape(U)[0]):
-  Phi_edj_sh[j], Phi_edj_nh[j] = pyt.TropD_Metric_EDJ(U[j,:,:,] ,lat, lev, method='max')
-
-# Calculate EDJ latitude from annual mean
-U_ANN = pytf.TropD_Calculate_Mon2Season(U, season=np.arange(12))
-
-Phi_edj_nh_ANN = np.zeros((np.shape(U_ANN)[0],)) # latitude of NH EDJ from annual mean U  
-Phi_edj_sh_ANN = np.zeros((np.shape(U_ANN)[0],)) # latitude of SH EDJ from annual mean U
-
-for j in range(np.shape(U_ANN)[0]):
-  Phi_edj_sh_ANN[j], Phi_edj_nh_ANN[j] = pyt.TropD_Metric_EDJ(U_ANN[j,:,:], lat, lev)
-
-plt.figure(7)
-plt.subplot(211)
-plt.plot(time,Phi_edj_nh,linewidth=1,color=green_color,\
-    label='Latitude of EDJ from monthly mean U')
-plt.plot(np.arange(y1,y2+1) + 0.5,Phi_edj_nh_ANN,linewidth=2,color=blue_color,\
-    label='Latitude of EDJ from annual mean U')
-plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_edj_nh, season=np.arange(12)),color='k',linewidth=2,\
-    label='Latitude of EDJ from annual mean of monthly metric values')
-plt.ylabel('NH EDJ latitude')
-plt.legend(loc='best', frameon=False)
-plt.subplot(212)
-plt.plot(time,Phi_edj_sh,linewidth=1,color=green_color)
-plt.plot(np.arange(y1,y2+1) + 0.5,Phi_edj_sh_ANN,linewidth=2,color=blue_color)
-plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_edj_sh, season=np.arange(12)),color='k',linewidth=2)
-plt.xlabel('Year')
-plt.ylabel('SH EDJ latitude')
 plt.show()
+
 
 ### 6) PE -- Precipitation minus evaporation subtropical zero crossing latitude
 ## read zonal mean monthly precipitation pr(time,lat)
