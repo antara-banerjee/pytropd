@@ -1,5 +1,4 @@
 #from __future__ import division
-import os
 import numpy as np
 import scipy.stats as ss
 import matplotlib.pyplot as plt
@@ -134,6 +133,7 @@ def boxstats(x):
 # FIGURE
 fig, (ax1, ax2) = plt.subplots(nrows=2,ncols=1, sharex=True, figsize=(6,6))
 
+#***************************************
 def common_axis_attributes(*axis):
     
     for ax in axis:
@@ -143,7 +143,23 @@ def common_axis_attributes(*axis):
         
     return
 
-#def add_boxplot(data, xpos, axis):
+#***************************************
+def add_boxplot(data, xpos, ax, metric):
+    
+    #box
+    rect = patches.Rectangle((xpos,data['lperc']), width=1, height=data['uperc']-data['lperc'], linewidth=1, facecolor='b', fill=True, alpha=0.8, edgecolor='k')
+    ax.add_patch(rect)
+    ax.plot([xpos,xpos+1], [data['median'],data['median']], color='k', linewidth=1.5) 
+    # whiskers
+    ax.plot([xpos+0.5,xpos+0.5],[data['uperc'],data['uextreme']], linestyle='-', color='k', linewidth=0.5) 
+    ax.plot([xpos+0.5,xpos+0.5],[data['lperc'],data['lextreme']], linestyle='-', color='k', linewidth=0.5) 
+    ax.plot([xpos+0.4,xpos+0.6],[data['uextreme'],data['uextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
+    ax.plot([xpos+0.4,xpos+0.6],[data['lextreme'],data['lextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
+    # outliers
+    outlier_points = EDJ_boxstats_SH['outliers']
+    ax.scatter([xpos+0.5]*len(outlier_points), outlier_points, facecolors='none', edgecolors='k', marker='o', s=10)
+    #ax.set_xticks([xpos])
+    #ax.set_xticklabels(xpos, metric)
 
 #*****************************************************************************
 # 5) EDJ
@@ -159,18 +175,25 @@ for i in range(1,21):
 EDJ_boxstats_NH = boxstats(EDJ_slopes_NH)
 EDJ_boxstats_SH = boxstats(EDJ_slopes_SH)
 
-#box
-rect = patches.Rectangle((1,EDJ_boxstats_SH['lperc']), width=1, height=EDJ_boxstats_SH['uperc']-EDJ_boxstats_SH['lperc'], linewidth=1, facecolor='b', fill=True, alpha=0.8, edgecolor='k')
-ax2.add_patch(rect)
-ax2.plot([1,2], [EDJ_boxstats_SH['median'],EDJ_boxstats_SH['median']], color='k', linewidth=1.5) 
-# whiskers
-ax2.plot([1.5,1.5],[EDJ_boxstats_SH['uperc'],EDJ_boxstats_SH['uextreme']], linestyle='-', color='k', linewidth=0.5) 
-ax2.plot([1.5,1.5],[EDJ_boxstats_SH['lperc'],EDJ_boxstats_SH['lextreme']], linestyle='-', color='k', linewidth=0.5) 
-ax2.plot([1.4,1.6],[EDJ_boxstats_SH['uextreme'],EDJ_boxstats_SH['uextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
-ax2.plot([1.4,1.6],[EDJ_boxstats_SH['lextreme'],EDJ_boxstats_SH['lextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
-# outliers
-outlier_points = EDJ_boxstats_SH['outliers']
-ax2.scatter([1.5]*len(outlier_points), outlier_points, facecolors='none', edgecolors='k', marker='o', s=10)
+add_boxplot(EDJ_boxstats_NH, 5, ax1, 'EDJ')
+add_boxplot(EDJ_boxstats_SH, 5, ax2, 'EDJ')
+
+#*****************************************************************************
+# 8) EDJ
+EDJ_slopes_NH = []
+EDJ_slopes_SH = []
+for i in range(1,21):
+    print(i)
+    fname = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.U.202001-209912.nc'
+    slope_NH, slope_SH = TropD_GLENS.EDJ(fname, y1, y2, seas)
+    EDJ_slopes_NH.append(slope_NH*10)
+    EDJ_slopes_SH.append(slope_SH*10)
+
+EDJ_boxstats_NH = boxstats(EDJ_slopes_NH)
+EDJ_boxstats_SH = boxstats(EDJ_slopes_SH)
+
+add_boxplot(EDJ_boxstats_NH, 5, ax1, 'EDJ')
+add_boxplot(EDJ_boxstats_SH, 5, ax2, 'EDJ')
 
 #*****************************************************************************
 

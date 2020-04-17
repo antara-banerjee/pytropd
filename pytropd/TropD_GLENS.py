@@ -364,8 +364,6 @@ def EDJ(fname, y1, y2, seas):
    return (slope_NH, slope_SH)
 #*****************************************************************************
 
-
-
 ### 6) PE -- Precipitation minus evaporation subtropical zero crossing latitude
 ## read zonal mean monthly precipitation pr(time,lat)
 #f_pr = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/pr.nc'),'r')
