@@ -15,6 +15,7 @@ y1 = 2020
 y2 = 2099
 seas = 'SON'
     
+#*****************************************************************************
 def boxstats(x):
 
    def confidence_interval(ensvals):
@@ -128,11 +129,28 @@ def boxstats(x):
                'npos':npos}
                
    return boxstats
+#*****************************************************************************
 
+# FIGURE
+fig, (ax1, ax2) = plt.subplots(nrows=2,ncols=1, sharex=True, figsize=(6,6))
+
+def common_axis_attributes(*axis):
+    
+    for ax in axis:
+        ax.set_ylim([-0.5,0.5]) 
+        ax.set_xlim([0,10])
+        ax.axhline(y=0, color='k')
+        
+    return
+
+#def add_boxplot(data, xpos, axis):
+
+#*****************************************************************************
+# 5) EDJ
 EDJ_slopes_NH = []
 EDJ_slopes_SH = []
-
 for i in range(1,21):
+    print(i)
     fname = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.U.202001-209912.nc'
     slope_NH, slope_SH = TropD_GLENS.EDJ(fname, y1, y2, seas)
     EDJ_slopes_NH.append(slope_NH*10)
@@ -141,42 +159,22 @@ for i in range(1,21):
 EDJ_boxstats_NH = boxstats(EDJ_slopes_NH)
 EDJ_boxstats_SH = boxstats(EDJ_slopes_SH)
 
-fig, ax = plt.subplots()
+#box
 rect = patches.Rectangle((1,EDJ_boxstats_SH['lperc']), width=1, height=EDJ_boxstats_SH['uperc']-EDJ_boxstats_SH['lperc'], linewidth=1, facecolor='b', fill=True, alpha=0.8, edgecolor='k')
-ax.add_patch(rect)
-
-## one rectangle to rule them all
-#rect = patches.Rectangle((ipos-width/2.,boxstats['lperc']), width=width, height=boxstats['uperc']-boxstats['lperc'], linewidth=1, facecolor=color,fill=fill, alpha=0.8, edgecolor=edgecolor)
-#ax.add_patch(rect)
-
-## median - dashed and solid based on significance
-#if boxstats['lowerCI']<0 and boxstats['upperCI']>0: 
-#   ax.plot([ipos-width/2,ipos+width/2], [boxstats['median'],boxstats['median']], color='k', linewidth=1.5, linestyle='--') 
-#else:
-#   ax.plot([ipos-width/2,ipos+width/2], [boxstats['median'],boxstats['median']], color='k', linewidth=1.5) 
-
-ax.plot([1,2], [EDJ_boxstats_SH['median'],EDJ_boxstats_SH['median']], color='k', linewidth=1.5) 
-
-#print 'CONFIDENCE INTERVALS ON MEDIAN: ', boxstats['lowerCI'], boxstats['upperCI']
-#ax.plot([ipos-width/2,ipos+width/2], [boxstats['lowerCI'],boxstats['lowerCI']], color='k', linewidth=2) 
-#ax.plot([ipos-width/2,ipos+width/2], [boxstats['upperCI'],boxstats['upperCI']], color='k', linewidth=2) 
-
+ax2.add_patch(rect)
+ax2.plot([1,2], [EDJ_boxstats_SH['median'],EDJ_boxstats_SH['median']], color='k', linewidth=1.5) 
 # whiskers
-ax.plot([1.5,1.5],[EDJ_boxstats_SH['uperc'],EDJ_boxstats_SH['uextreme']], linestyle='-', color='k', linewidth=0.5) 
-ax.plot([1.5,1.5],[EDJ_boxstats_SH['lperc'],EDJ_boxstats_SH['lextreme']], linestyle='-', color='k', linewidth=0.5) 
-#ax.plot([1.4,1.6],[boxstats['uextreme'],boxstats['uextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
-#ax.plot([1.4,1.6],[boxstats['lextreme'],boxstats['lextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
-
+ax2.plot([1.5,1.5],[EDJ_boxstats_SH['uperc'],EDJ_boxstats_SH['uextreme']], linestyle='-', color='k', linewidth=0.5) 
+ax2.plot([1.5,1.5],[EDJ_boxstats_SH['lperc'],EDJ_boxstats_SH['lextreme']], linestyle='-', color='k', linewidth=0.5) 
+ax2.plot([1.4,1.6],[EDJ_boxstats_SH['uextreme'],EDJ_boxstats_SH['uextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
+ax2.plot([1.4,1.6],[EDJ_boxstats_SH['lextreme'],EDJ_boxstats_SH['lextreme']], linestyle='-', color='k', linewidth=0.5) # whiskers bars
 # outliers
 outlier_points = EDJ_boxstats_SH['outliers']
-ax.scatter([1.5]*len(outlier_points), outlier_points, facecolors='none', edgecolors='k', marker='o', s=10)
-ax.set_ylim([-0.5,0.5]) 
-ax.set_xlim([0,10])
-ax.axhline(y=0, color='k')
-plt.show()
+ax2.scatter([1.5]*len(outlier_points), outlier_points, facecolors='none', edgecolors='k', marker='o', s=10)
 
-# number in each rectangle
-#ax.text(ipos+width/2., -0.4, str(boxstats['nsign'][0]), fontsize=14, color='b')
-#ax.text(ipos+width/2., 0.1, str(boxstats['nsign'][1]), fontsize=14, color='r') 
+#*****************************************************************************
+
+common_axis_attributes(ax1, ax2)
+plt.show()
 
 sys.exit()

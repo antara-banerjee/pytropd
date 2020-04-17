@@ -298,9 +298,9 @@ dirname = os.path.dirname(__file__)
 #plt.ylabel('SH STJ latitude')
 #plt.show()
 
+#*****************************************************************************
 ## 5) EDJ -- Eddy Driven Jet (EDJ) latitude
-fEDJ = open('EDJ_'+seas, 'w')
-
+#fEDJ = open('EDJ_'+seas, 'w')
 def EDJ(fname, y1, y2, seas):
    #read zonal wind U(time,lat,lev), latitude and level
    f_U = netcdf.netcdf_file(fname, 'r')
@@ -310,12 +310,11 @@ def EDJ(fname, y1, y2, seas):
    f_U.close()
    
    U = U[:,:,:,0] # remove longitude dimension (zonal meaned)
-   U = np.moveaxis(U, 0, 2) # should be (lev,lat,time); have (time, lev, lat)
    print(U.shape) # should be (41, 192, 960)
    
-   #Change axes of u to be [time, lat]
-   U = np.transpose(U, (2,1,0))
-   print(U.shape)
+   #Change axes of u to be [time, lat, lev]
+   U = np.transpose(U, (0,2,1))
+   print('after transpose', U.shape)
    
    Phi_edj_nh = np.zeros((np.shape(U)[0],)) # latitude of monthly NH EDJ
    Phi_edj_sh = np.zeros((np.shape(U)[0],)) # latitude of monthly SH EDJ
@@ -345,9 +344,8 @@ def EDJ(fname, y1, y2, seas):
      
    slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_edj_nh_seas)
    slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_edj_sh_seas)
-   print(slope_NH*10)
-   print(slope_SH*10)
    
+   '''
    #seasonal figure
    plt.figure(8)
    plt.subplot(211)
@@ -361,9 +359,10 @@ def EDJ(fname, y1, y2, seas):
    plt.xlabel('Year')
    plt.ylabel('SH EDJ latitude')
    plt.show()
+   '''
    
    return (slope_NH, slope_SH)
-
+#*****************************************************************************
 
 
 
