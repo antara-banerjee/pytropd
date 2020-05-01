@@ -3,6 +3,7 @@ import os
 import numpy as np
 import scipy as sp
 from scipy.io import netcdf
+import netCDF4 as ncdf
 import pytropd.metrics as pyt
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -12,12 +13,12 @@ import sys
 # Example codes for using the TropD package to calculate tropical width metrics
 # The code assumes that the current directory is ... tropd/pytropd/
 ## Set display and meta parameters
-y1 = 2020
-y2 = 2099
+#y1 = 2020
+#y2 = 2099
 seas = 'SON'
-dseas = {'MAM':[2,3,4],'JJA':[5,6,7],'SON':[8,9,10]}
-time = np.linspace(y1,y2+1,12*(y2-y1+1)+1)
-time = (time[:-1] + time[1:]) / 2
+dseas = {'DJF':[0,1,11],'MAM':[2,3,4],'JJA':[5,6,7],'SON':[8,9,10]}
+#time = np.linspace(y1,y2+1,12*(y2-y1+1)+1)
+#time = (time[:-1] + time[1:]) / 2
 red_color     = (1,0.3,0.4)
 orange_color  = (255/256,140/256,0) 
 blue_color    = (0,0.447,0.741)
@@ -29,72 +30,95 @@ maroon_color  = (0.635,0.078,0.184)
 ## used to build absolute path to data files
 dirname = os.path.dirname(__file__)
 #
-### 1) PSI -- Streamfunction zero crossing
-##read meridional velocity V(time,lat,lev), latitude and level
-#f_V = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/va.nc'),'r')
-#V = f_V.variables['va'][:].copy()
-##Change axes of V to be [time, lat, lev]
-#V = np.transpose(V, (2,1,0))
-#lat = f_V.variables['lat'][:].copy()
-#lev = f_V.variables['lev'][:].copy()
-#f_V.close()
-#
-#Phi_psi_nh = np.zeros((np.shape(V)[0],)) # latitude of monthly NH Psi zero crossing
-#Phi_psi_sh = np.zeros((np.shape(V)[0],)) # latitude of monthly SH Psi zero crossing
-#
-#for j in range(np.shape(V)[0]):
-#  # Default method = 'Psi500'
-#  Phi_psi_sh[j], Phi_psi_nh[j] = pyt.TropD_Metric_PSI(V[j,:,:], lat, lev)
-#
-#
-## Calculate metric from annual mean
-#V_ANN = pytf.TropD_Calculate_Mon2Season(V,season=np.arange(12))
-#
-#Phi_psi_nh_ANN = np.zeros((np.shape(V_ANN)[0],)) # latitude of NH stream function zero crossing from annual mean V
-#Phi_psi_sh_ANN = np.zeros((np.shape(V_ANN)[0],)) # latitude of SH stream function zero crossing from annual mean V
-#
-#for j in range(np.shape(V_ANN)[0]):
-#  Phi_psi_sh_ANN[j], Phi_psi_nh_ANN[j] = pyt.TropD_Metric_PSI(V_ANN[j,:,:], lat, lev)
-#
-#
-#plt.figure(1)
-#plt.subplot(211)
-#plt.plot(time, Phi_psi_nh, linewidth=1, color=green_color, \
-#        label=r'Latitude of $\Psi_{500}$ zero crossing from monthly mean V')
-#plt.plot(np.arange(y1,y2+1)+0.5, Phi_psi_nh_ANN, linewidth=2, color=blue_color,\
-#        label=r'Latitude of $\Psi_{500}$ zero crossing from annual mean V')
-#plt.plot(np.arange(y1,y2+1)+0.5, pytf.TropD_Calculate_Mon2Season(Phi_psi_nh, season=np.arange(12)),linewidth=2, color='k',\
-#        label=r'Latitude of $\Psi_{500}$ zero crossing from annual means of monthly metric values')
-#plt.xticks(np.arange(1980,2020,5))
-#plt.ylabel('latitude')
-#plt.title(r"NH $\Psi_{500}$")
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(time, Phi_psi_sh, linewidth=1, color=green_color)
-#plt.plot(np.arange(y1,y2+1)+0.5, Phi_psi_sh_ANN, linewidth=2, color=blue_color)
-#plt.plot(np.arange(y1,y2+1)+0.5, pytf.TropD_Calculate_Mon2Season(Phi_psi_sh, season=np.arange(12)),linewidth=2, color='k')
-#plt.xticks(np.arange(1980,2020,5))
-#plt.ylabel('latitude')
-#plt.title(r"SH $\Psi_{500}$")
-#plt.show()
-#
-## Introduce latitude unertainty condition: no additional zero crossing is allowed within 10 degrees
-#Phi_psi_nh_L = np.zeros((np.shape(V)[0],)) # latitude of monthly NH Psi zero crossing
-#Phi_psi_sh_L = np.zeros((np.shape(V)[0],)) # latitude of monthly SH Psi zero crossing
-#
-#for j in range(np.shape(V)[0]):
-#  Phi_psi_sh_L[j], Phi_psi_nh_L[j] = pyt.TropD_Metric_PSI(V[j,:,:], lat, lev, method='Psi_500', lat_uncertainty=10)
-#
-#plt.figure(2)
-#plt.plot(time,Phi_psi_nh,linewidth=2,color=green_color,\
-#    label='$\Psi_{500}$ zero crossing from monthly mean V that qualify uncertainty criterion') 
-#plt.plot(time[np.isnan(Phi_psi_nh_L)], Phi_psi_nh[np.isnan(Phi_psi_nh_L)],marker='*',linestyle='None',markersize=10,color=red_color,\
-#    label='$\Psi_{500}$ zero crossing from monthly mean V that fail uncertainty criterion')
-#plt.title(r'NH $\Psi_{500}$')
-#plt.ylabel('latitude')
-#plt.legend(loc='best', frameon=False)
-#plt.xlabel('Year')
-#plt.show()
+#*****************************************************************************
+# 1) PSI -- Streamfunction zero crossing
+def PSI(fname, y1, y2, seas):
+   #read meridional velocity V(time,lat,lev), latitude and level
+   f_V = netcdf.netcdf_file(fname, 'r')
+   V = f_V.variables['V'][:].copy()
+   #Change axes of V to be [time, lat, lev]
+   #V = np.transpose(V, (2,1,0))
+   lat = f_V.variables['lat'][:].copy()
+   lev = f_V.variables['level'][:].copy()
+   f_V.close()
+
+   V = V[:,:,:,0] # remove longitude dimension (zonal meaned)
+   print(V.shape) # should be (41, 192, 960)
+   
+   #Change axes of u to be [time, lat, lev]
+   V = np.transpose(V, (0,2,1))
+   print('after transpose', V.shape)
+   
+   Phi_psi_nh = np.zeros((np.shape(V)[0],)) # latitude of monthly NH Psi zero crossing
+   Phi_psi_sh = np.zeros((np.shape(V)[0],)) # latitude of monthly SH Psi zero crossing
+   
+   for j in range(np.shape(V)[0]):
+     # Default method = 'Psi500'
+     Phi_psi_sh[j], Phi_psi_nh[j] = pyt.TropD_Metric_PSI(V[j,:,:], lat, lev)
+   
+   # Calculate metric from annual mean
+   V_ANN = pytf.TropD_Calculate_Mon2Season(V,season=np.arange(12))
+   
+   Phi_psi_nh_ANN = np.zeros((np.shape(V_ANN)[0],)) # latitude of NH stream function zero crossing from annual mean V
+   Phi_psi_sh_ANN = np.zeros((np.shape(V_ANN)[0],)) # latitude of SH stream function zero crossing from annual mean V
+   
+   for j in range(np.shape(V_ANN)[0]):
+     Phi_psi_sh_ANN[j], Phi_psi_nh_ANN[j] = pyt.TropD_Metric_PSI(V_ANN[j,:,:], lat, lev)
+
+   # Calculate metric from seasonal mean
+   V_seas = pytf.TropD_Calculate_Mon2Season(V, season=dseas[seas])
+   
+   Phi_psi_nh_seas = np.zeros((np.shape(V_seas)[0],)) # latitude of NH stream function zero crossing from annual mean V
+   Phi_psi_sh_seas = np.zeros((np.shape(V_seas)[0],)) # latitude of SH stream function zero crossing from annual mean V
+   
+   for j in range(np.shape(V_seas)[0]):
+     Phi_psi_sh_seas[j], Phi_psi_nh_seas[j] = pyt.TropD_Metric_PSI(V_seas[j,:,:], lat, lev)
+
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_psi_nh_seas)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_psi_sh_seas)
+   
+   '''
+   plt.figure(1)
+   plt.subplot(211)
+   plt.plot(time, Phi_psi_nh, linewidth=1, color=green_color, \
+           label=r'Latitude of $\Psi_{500}$ zero crossing from monthly mean V')
+   plt.plot(np.arange(y1,y2+1)+0.5, Phi_psi_nh_ANN, linewidth=2, color=blue_color,\
+           label=r'Latitude of $\Psi_{500}$ zero crossing from annual mean V')
+   plt.plot(np.arange(y1,y2+1)+0.5, pytf.TropD_Calculate_Mon2Season(Phi_psi_nh, season=np.arange(12)),linewidth=2, color='k',\
+           label=r'Latitude of $\Psi_{500}$ zero crossing from annual means of monthly metric values')
+   plt.xticks(np.arange(1980,2020,5))
+   plt.ylabel('latitude')
+   plt.title(r"NH $\Psi_{500}$")
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(time, Phi_psi_sh, linewidth=1, color=green_color)
+   plt.plot(np.arange(y1,y2+1)+0.5, Phi_psi_sh_ANN, linewidth=2, color=blue_color)
+   plt.plot(np.arange(y1,y2+1)+0.5, pytf.TropD_Calculate_Mon2Season(Phi_psi_sh, season=np.arange(12)),linewidth=2, color='k')
+   plt.xticks(np.arange(1980,2020,5))
+   plt.ylabel('latitude')
+   plt.title(r"SH $\Psi_{500}$")
+   plt.show()
+   
+   # Introduce latitude unertainty condition: no additional zero crossing is allowed within 10 degrees
+   Phi_psi_nh_L = np.zeros((np.shape(V)[0],)) # latitude of monthly NH Psi zero crossing
+   Phi_psi_sh_L = np.zeros((np.shape(V)[0],)) # latitude of monthly SH Psi zero crossing
+   
+   for j in range(np.shape(V)[0]):
+     Phi_psi_sh_L[j], Phi_psi_nh_L[j] = pyt.TropD_Metric_PSI(V[j,:,:], lat, lev, method='Psi_500', lat_uncertainty=10)
+   
+   plt.figure(2)
+   plt.plot(time,Phi_psi_nh,linewidth=2,color=green_color,\
+       label='$\Psi_{500}$ zero crossing from monthly mean V that qualify uncertainty criterion') 
+   plt.plot(time[np.isnan(Phi_psi_nh_L)], Phi_psi_nh[np.isnan(Phi_psi_nh_L)],marker='*',linestyle='None',markersize=10,color=red_color,\
+       label='$\Psi_{500}$ zero crossing from monthly mean V that fail uncertainty criterion')
+   plt.title(r'NH $\Psi_{500}$')
+   plt.ylabel('latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.xlabel('Year')
+   plt.show()
+   '''
+
+   return (slope_NH, slope_SH)
 #
 #
 ### 2) TPB -- Tropopause break latitude
@@ -168,139 +192,191 @@ dirname = os.path.dirname(__file__)
 #plt.ylabel('latitude')
 #plt.show()
 #
-###3) OLR -- OLR cutoff
-##Note: OLR is assumed to be positive upwards and in units of W/m^2
-## read zonal mean monthly TOA outgoing longwave radiation olr(time,lat)
-## read zonal mean monthly clear-sky TOA outgoing longwave radiation olrcs(time,lat)
-#f_olr = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/rlnt.nc'),'r')
-#f_olrcs = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/rlntcs.nc'),'r')
-#olr = -f_olr.variables['rlnt'][:].copy()
-#olrcs = -f_olrcs.variables['rlntcs'][:].copy()
-#lat = f_olr.variables['lat'][:].copy()
-#f_olr.close()
-#f_olrcs.close()
+#*****************************************************************************
+#3) OLR -- OLR cutoff
+def OLR(fnameOLR, fnameOLRCS, y1, y2, seas):
+
+   #Note: OLR is assumed to be positive upwards and in units of W/m^2
+   # read zonal mean monthly TOA outgoing longwave radiation olr(time,lat)
+   # read zonal mean monthly clear-sky TOA outgoing longwave radiation olrcs(time,lat)
+   f_olr = netcdf.netcdf_file(fnameOLR, 'r')
+   f_olrcs = netcdf.netcdf_file(fnameOLRCS, 'r')
+   # note no minus for GLENS
+   olr = f_olr.variables['FLNT'][:].copy()
+   olrcs = f_olrcs.variables['FLNTC'][:].copy()
+   #f_olr = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/rlnt.nc'),'r')
+   #f_olrcs = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/rlntcs.nc'),'r')
+   #olr = -f_olr.variables['rlnt'][:].copy()
+   #olrcs = -f_olrcs.variables['rlntcs'][:].copy()
+   lat = f_olr.variables['lat'][:].copy()
+   f_olr.close()
+   f_olrcs.close()
+   
+   olr = olr[:,:,0] # remove longitude dimension (zonal meaned)
+   olrcs = olrcs[:,:,0] # remove longitude dimension (zonal meaned)
+   print('INITIAL SHAPE ', olr.shape) # should be (960, 192)
+   
+   #Change axes of olr and olrcs to be [time, lat]
+   #olr = np.transpose(olr, (1,0))
+   #olrcs = np.transpose(olrcs, (1,0))
+
+   '''
+   #Calculate annual mean field
+   olr_ANN = pytf.TropD_Calculate_Mon2Season(olr, season=np.arange(12))
+   olrcs_ANN = pytf.TropD_Calculate_Mon2Season(olrcs, season=np.arange(12))
+   
+   Phi_olr_nh = np.zeros((np.shape(olr)[0],))            # latitude of NH olr metric                                    
+   Phi_olr_sh = np.zeros((np.shape(olr)[0],))            # latitude of SH olr metric
+   
+   Phi_olr_nh_ANN = np.zeros((np.shape(olr_ANN)[0],))    # latitude of NH olr metric from annual mean olr
+   Phi_olr_sh_ANN = np.zeros((np.shape(olr_ANN)[0],))    # latitude of SH olr metric from annual mean olr
+   
+   Phi_olrcs_nh = np.zeros((np.shape(olr)[0],))          # latitude of NH olr metric
+   Phi_olrcs_sh = np.zeros((np.shape(olr)[0],))          # latitude of SH olr metric
+   
+   Phi_olrcs_nh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of NH olr metric from annual mean olr
+   Phi_olrcs_sh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of SH olr metric from annual mean olr
+   
+   Phi_olr20_nh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of NH olr metric from annual mean olr-20W/m^2 cutoff
+   Phi_olr20_sh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of SH olr metric from annual mean olr-20W/m^2 cutoff
+   Phi_olr240_nh_ANN = np.zeros((np.shape(olr_ANN)[0],)) # latitude of NH olr metric from annual mean olr 240W/m^2 cutoff
+   Phi_olr240_sh_ANN = np.zeros((np.shape(olr_ANN)[0],)) # latitude of SH olr metric from annual mean olr 240W/m^2 cutoff
+   
+   for j in range(np.shape(olr)[0]):
+     # Default method = '250W'
+     Phi_olr_sh[j], Phi_olr_nh[j] = pyt.TropD_Metric_OLR(olr[j,:], lat)
+     Phi_olrcs_sh[j], Phi_olrcs_nh[j] = pyt.TropD_Metric_OLR(olrcs[j,:], lat)
+   
+   for j in range(np.shape(olr_ANN)[0]):
+     Phi_olr_sh_ANN[j], Phi_olr_nh_ANN[j] = pyt.TropD_Metric_OLR(olr_ANN[j,:], lat)
+     Phi_olrcs_sh_ANN[j], Phi_olrcs_nh_ANN[j] = pyt.TropD_Metric_OLR(olrcs_ANN[j,:], lat)
+     Phi_olr20_sh_ANN[j], Phi_olr20_nh_ANN[j] = pyt.TropD_Metric_OLR(olr_ANN[j,:], lat, method='20W')
+     Phi_olr240_sh_ANN[j], Phi_olr240_nh_ANN[j] = pyt.TropD_Metric_OLR(olr_ANN[j,:],lat, method='cutoff',Cutoff=240)
+   '''
+
+   # AB - Calculate seasonal mean field
+   olr_seas = pytf.TropD_Calculate_Mon2Season(olr, season=dseas[seas])
+   Phi_olr_nh_seas = np.zeros((np.shape(olr_seas)[0],))    # latitude of NH olr metric from annual mean olr
+   Phi_olr_sh_seas = np.zeros((np.shape(olr_seas)[0],))    # latitude of SH olr metric from annual mean olr
+   for j in range(np.shape(olr_seas)[0]):
+     Phi_olr_sh_seas[j], Phi_olr_nh_seas[j] = pyt.TropD_Metric_OLR(olr_seas[j,:], lat, method='20W')
+     
+   #olrcs_seas = pytf.TropD_Calculate_Mon2Season(olrcs, season=dseas[seas])
+   #Phi_olrcs_nh_seas = np.zeros((np.shape(olrcs_seas)[0],))    # latitude of NH olr metric from annual mean olr
+   #Phi_olrcs_sh_seas = np.zeros((np.shape(olrcs_seas)[0],))    # latitude of SH olr metric from annual mean olr
+   #for j in range(np.shape(olr_seas)[0]):
+   #  Phi_olrcs_sh_seas[j], Phi_olrcs_nh_seas[j] = pyt.TropD_Metric_OLR(olrcs_seas[j,:], lat, method='cutoff',Cutoff=240)
+   
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_olr_nh_seas)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_olr_sh_seas)
+   
+   '''
+   plt.figure(4)
+   plt.subplot(211)
+   plt.plot(time,Phi_olr_nh,linewidth=3,color=green_color,\
+       label='Latitude of OLR 250W/m^2 cutoff latitude from monthly OLR')
+   plt.plot(time,Phi_olrcs_nh,linewidth=1,color=tuple([0.5*x for x in green_color]),\
+       label='Latitude of OLR 250W/m^2 cutoff latitude from monthly clear-sky OLR')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_nh_ANN,linewidth=3,color=blue_color,\
+       label='Latitude of OLR 250W/m^2 cutoff latitude from annual mean OLR')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olrcs_nh_ANN,linewidth=1,color=tuple([0.5*x for x in blue_color]),\
+       label='Latitude of OLR 250W/m^2 cutoff latitude from annual mean clear-sky OLR')
+   plt.ylabel('NH OLR cutoff latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(time,Phi_olr_sh,linewidth=3,color=green_color)
+   plt.plot(time,Phi_olrcs_sh,linewidth=1,color=tuple([0.5*x for x in green_color]))
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_sh_ANN,linewidth=3,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olrcs_sh_ANN,linewidth=1,color=tuple([0.5*x for x in blue_color]))
+   plt.xlabel('Year')
+   plt.ylabel('SH OLR cutoff latitude')
+   plt.show()
+   
+   plt.figure(5)
+   plt.subplot(211)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_nh_ANN,linewidth=3,color=tuple([0.5*x for x in blue_color]),\
+       label='Latitude of OLR 250W/m^2 {default} cutoff latitude from annual-mean OLR')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr240_nh_ANN,linewidth=3,color=blue_color,\
+       label='Latitude of OLR 240W/m^2 cutoff latitude from annual-mean OLR')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr20_nh_ANN,linewidth=3,color=green_color,\
+       label='Latitude of OLR -20W/m^2 cutoff latitude from annual-mean OLR')
+   plt.ylabel('NH OLR cutoff latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_sh_ANN,linewidth=3,color=tuple([0.5*x for x in blue_color]))
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr240_sh_ANN,linewidth=3,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr20_sh_ANN,linewidth=3,color=green_color)
+   plt.xlabel('Year')
+   plt.ylabel('SH OLR cutoff latitude')
+   plt.show()
+   '''
+   
+   return (slope_NH, slope_SH)
 #
-##Change axes of olr and olrcs to be [time, lat]
-#olr = np.transpose(olr, (1,0))
-#olrcs = np.transpose(olrcs, (1,0))
-#
-##Calculate annual mean field
-#olr_ANN = pytf.TropD_Calculate_Mon2Season(olr, season=np.arange(12))
-#olrcs_ANN = pytf.TropD_Calculate_Mon2Season(olrcs, season=np.arange(12))
-#
-#Phi_olr_nh = np.zeros((np.shape(olr)[0],))            # latitude of NH olr metric                                    
-#Phi_olr_sh = np.zeros((np.shape(olr)[0],))            # latitude of SH olr metric
-#
-#Phi_olr_nh_ANN = np.zeros((np.shape(olr_ANN)[0],))    # latitude of NH olr metric from annual mean olr
-#Phi_olr_sh_ANN = np.zeros((np.shape(olr_ANN)[0],))    # latitude of SH olr metric from annual mean olr
-#
-#Phi_olrcs_nh = np.zeros((np.shape(olr)[0],))          # latitude of NH olr metric
-#Phi_olrcs_sh = np.zeros((np.shape(olr)[0],))          # latitude of SH olr metric
-#
-#Phi_olrcs_nh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of NH olr metric from annual mean olr
-#Phi_olrcs_sh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of SH olr metric from annual mean olr
-#
-#Phi_olr20_nh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of NH olr metric from annual mean olr-20W/m^2 cutoff
-#Phi_olr20_sh_ANN = np.zeros((np.shape(olr_ANN)[0],))  # latitude of SH olr metric from annual mean olr-20W/m^2 cutoff
-#Phi_olr240_nh_ANN = np.zeros((np.shape(olr_ANN)[0],)) # latitude of NH olr metric from annual mean olr 240W/m^2 cutoff
-#Phi_olr240_sh_ANN = np.zeros((np.shape(olr_ANN)[0],)) # latitude of SH olr metric from annual mean olr 240W/m^2 cutoff
-#
-#for j in range(np.shape(olr)[0]):
-#  # Default method = '250W'
-#  Phi_olr_sh[j], Phi_olr_nh[j] = pyt.TropD_Metric_OLR(olr[j,:], lat)
-#  Phi_olrcs_sh[j], Phi_olrcs_nh[j] = pyt.TropD_Metric_OLR(olrcs[j,:], lat)
-#
-#for j in range(np.shape(olr_ANN)[0]):
-#  Phi_olr_sh_ANN[j], Phi_olr_nh_ANN[j] = pyt.TropD_Metric_OLR(olr_ANN[j,:], lat)
-#  Phi_olrcs_sh_ANN[j], Phi_olrcs_nh_ANN[j] = pyt.TropD_Metric_OLR(olrcs_ANN[j,:], lat)
-#  Phi_olr20_sh_ANN[j], Phi_olr20_nh_ANN[j] = pyt.TropD_Metric_OLR(olr_ANN[j,:], lat, method='20W')
-#  Phi_olr240_sh_ANN[j], Phi_olr240_nh_ANN[j] = pyt.TropD_Metric_OLR(olr_ANN[j,:],lat,method='cutoff',Cutoff=240)
-#
-#
-#
-#plt.figure(4)
-#plt.subplot(211)
-#plt.plot(time,Phi_olr_nh,linewidth=3,color=green_color,\
-#    label='Latitude of OLR 250W/m^2 cutoff latitude from monthly OLR')
-#plt.plot(time,Phi_olrcs_nh,linewidth=1,color=tuple([0.5*x for x in green_color]),\
-#    label='Latitude of OLR 250W/m^2 cutoff latitude from monthly clear-sky OLR')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_nh_ANN,linewidth=3,color=blue_color,\
-#    label='Latitude of OLR 250W/m^2 cutoff latitude from annual mean OLR')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olrcs_nh_ANN,linewidth=1,color=tuple([0.5*x for x in blue_color]),\
-#    label='Latitude of OLR 250W/m^2 cutoff latitude from annual mean clear-sky OLR')
-#plt.ylabel('NH OLR cutoff latitude')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(time,Phi_olr_sh,linewidth=3,color=green_color)
-#plt.plot(time,Phi_olrcs_sh,linewidth=1,color=tuple([0.5*x for x in green_color]))
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_sh_ANN,linewidth=3,color=blue_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olrcs_sh_ANN,linewidth=1,color=tuple([0.5*x for x in blue_color]))
-#plt.xlabel('Year')
-#plt.ylabel('SH OLR cutoff latitude')
-#plt.show()
-#
-#plt.figure(5)
-#plt.subplot(211)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_nh_ANN,linewidth=3,color=tuple([0.5*x for x in blue_color]),\
-#    label='Latitude of OLR 250W/m^2 {default} cutoff latitude from annual-mean OLR')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr240_nh_ANN,linewidth=3,color=blue_color,\
-#    label='Latitude of OLR 240W/m^2 cutoff latitude from annual-mean OLR')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr20_nh_ANN,linewidth=3,color=green_color,\
-#    label='Latitude of OLR -20W/m^2 cutoff latitude from annual-mean OLR')
-#plt.ylabel('NH OLR cutoff latitude')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr_sh_ANN,linewidth=3,color=tuple([0.5*x for x in blue_color]))
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr240_sh_ANN,linewidth=3,color=blue_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_olr20_sh_ANN,linewidth=3,color=green_color)
-#plt.xlabel('Year')
-#plt.ylabel('SH OLR cutoff latitude')
-#plt.show()
-#
-#
-### 4) STJ -- Subtropical Jet (STJ) latitude
-##read zonal wind U(time,lat,lev), latitude and level
-#f_U = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/ua.nc'),'r')
-#U = f_U.variables['ua'][:].copy()
-#lat = f_U.variables['lat'][:].copy()
-#lev = f_U.variables['lev'][:].copy()
-#f_U.close()
-#
-##Change axes of u to be [time, lat]
-#U = np.transpose(U, (2,1,0))
-#
-## Calculate STJ latitude from annual mean
-#U_ANN = pytf.TropD_Calculate_Mon2Season(U, season=np.arange(12))
-#
-#Phi_stj_nh_ANN_adj = np.zeros((np.shape(U_ANN)[0],))  # latitude of NH STJ from annual mean U
-#Phi_stj_sh_ANN_adj = np.zeros((np.shape(U_ANN)[0],))  # latitude of SH STJ from annual mean U
-#Phi_stj_nh_ANN_core = np.zeros((np.shape(U_ANN)[0],)) # latitude of NH STJ from annual mean U
-#Phi_stj_sh_ANN_core = np.zeros((np.shape(U_ANN)[0],)) # latitude of SH STJ from annual mean U
-#
-#for j in range(np.shape(U_ANN)[0]):
-#  # Default method =  'adjusted'
-#  Phi_stj_sh_ANN_adj [j], Phi_stj_nh_ANN_adj[j] = pyt.TropD_Metric_STJ(U_ANN[j,:,:], lat, lev)
-#  Phi_stj_sh_ANN_core[j], Phi_stj_nh_ANN_core[j] = pyt.TropD_Metric_STJ(U_ANN[j,:,:], lat, lev, method='core_peak')
-#
-#
-#plt.figure(6)
-#plt.subplot(211)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_nh_ANN_adj,linewidth=2,color=green_color,\
-#    label='Latitude of STJ from anual mean U, using \'adjusted peak\' method')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_nh_ANN_core,linewidth=2,color=blue_color,\
-#    label='Latitude of STJ from anual mean U, using \'core peak\' method')
-#plt.ylabel('NH STJ latitude')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_sh_ANN_adj,linewidth=2,color=green_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_sh_ANN_core,linewidth=2,color=blue_color)
-#plt.xlabel('Year')
-#plt.ylabel('SH STJ latitude')
-#plt.show()
+#*****************************************************************************
+## 4) STJ -- Subtropical Jet (STJ) latitude
+def STJ(fname, y1, y2, seas):
+   #read zonal wind U(time,lat,lev), latitude and level
+   f_U = netcdf.netcdf_file(fname, 'r')
+   U = f_U.variables['U'][:].copy()
+   lat = f_U.variables['lat'][:].copy()
+   lev = f_U.variables['level'][:].copy()
+   f_U.close()
+   
+   U = U[:,:,:,0] # remove longitude dimension (zonal meaned)
+   print(U.shape) # should be (41, 192, 960)
+   
+   #Change axes of u to be [time, lat, lev]
+   U = np.transpose(U, (0,2,1))
+   print('after transpose', U.shape)
+   
+   # Calculate STJ latitude from annual mean
+   U_ANN = pytf.TropD_Calculate_Mon2Season(U, season=np.arange(12))
+   
+   Phi_stj_nh_ANN_adj = np.zeros((np.shape(U_ANN)[0],))  # latitude of NH STJ from annual mean U
+   Phi_stj_sh_ANN_adj = np.zeros((np.shape(U_ANN)[0],))  # latitude of SH STJ from annual mean U
+   Phi_stj_nh_ANN_core = np.zeros((np.shape(U_ANN)[0],)) # latitude of NH STJ from annual mean U
+   Phi_stj_sh_ANN_core = np.zeros((np.shape(U_ANN)[0],)) # latitude of SH STJ from annual mean U
+   
+   for j in range(np.shape(U_ANN)[0]):
+     # Default method =  'adjusted'
+     Phi_stj_sh_ANN_adj [j], Phi_stj_nh_ANN_adj[j] = pyt.TropD_Metric_STJ(U_ANN[j,:,:], lat, lev)
+     Phi_stj_sh_ANN_core[j], Phi_stj_nh_ANN_core[j] = pyt.TropD_Metric_STJ(U_ANN[j,:,:], lat, lev, method='core_peak')
+   
+   # AB - calculate from seasonal means - check what is adjusted above
+   print('U shape', U.shape)
+   print(U[0:12,30,35])
+   U_seas = pytf.TropD_Calculate_Mon2Season(U, season=dseas[seas]) #m=11; [0,1,2] doesn't work for DJF
+   
+   Phi_stj_nh_seas_adj = np.zeros((np.shape(U_seas)[0],)) # latitude of NH EDJ from annual mean U  
+   Phi_stj_sh_seas_adj = np.zeros((np.shape(U_seas)[0],)) # latitude of SH EDJ from annual mean U
+   
+   for j in range(np.shape(U_seas)[0]):
+     Phi_stj_sh_seas_adj[j], Phi_stj_nh_seas_adj[j] = pyt.TropD_Metric_STJ(U_seas[j,:,:], lat, lev)
+     
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_stj_nh_seas_adj)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_stj_sh_seas_adj)
+
+   '''
+   plt.figure(6)
+   plt.subplot(211)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_nh_ANN_adj,linewidth=2,color=green_color,\
+       label='Latitude of STJ from anual mean U, using \'adjusted peak\' method')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_nh_ANN_core,linewidth=2,color=blue_color,\
+       label='Latitude of STJ from anual mean U, using \'core peak\' method')
+   plt.ylabel('NH STJ latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_sh_ANN_adj,linewidth=2,color=green_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_stj_sh_ANN_core,linewidth=2,color=blue_color)
+   plt.xlabel('Year')
+   plt.ylabel('SH STJ latitude')
+   plt.show()
+   '''
+   return (slope_NH, slope_SH)
 
 #*****************************************************************************
 ## 5) EDJ -- Eddy Driven Jet (EDJ) latitude
-#fEDJ = open('EDJ_'+seas, 'w')
 def EDJ(fname, y1, y2, seas):
    #read zonal wind U(time,lat,lev), latitude and level
    f_U = netcdf.netcdf_file(fname, 'r')
@@ -418,101 +494,151 @@ def EDJ(fname, y1, y2, seas):
 #plt.show()
 #
 #
-### 7) UAS -- Zonal surface wind subtropical zero crossing latitude
-##read zonal wind U(time,lat,lev), latitude and level
-#f_U = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/ua.nc'),'r')
-##read zonal mean surface wind U(time,lat)
-#f_uas = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/uas.nc'),'r')
-#U = f_U.variables['ua'][:].copy()
-#uas = f_uas.variables['uas'][:].copy()
-#lat = f_U.variables['lat'][:].copy()
-#lev = f_U.variables['lev'][:].copy()
-#f_U.close()
-#
-#
-##Change axes of u to be [time, lat]
-#U = np.transpose(U, (2,1,0))
-#uas = np.transpose(uas, (1,0))
-#
-#uas_ANN = pytf.TropD_Calculate_Mon2Season(uas, season=np.arange(12))
-#U_ANN = pytf.TropD_Calculate_Mon2Season(U, season=np.arange(12))
-#
-#Phi_uas_nh = np.zeros((np.shape(uas)[0],))         # latitude of NH surface zonal wind metric                        
-#Phi_uas_sh = np.zeros((np.shape(uas)[0],))         # latitude of SH surface zonal wind metric
-#
-#Phi_uas_nh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of NH surface zonal wind metric from annual mean surface zonal wind
-#Phi_uas_sh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of SH surface zonal wind metric from annual mean surface zonal wind
-#Phi_Uas_nh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of NH surface zonal wind metric from annual mean zonal wind (lat,lev)
-#Phi_Uas_sh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of SH surface zonal wind metric from annual mean zonal wind (lat,lev)
-#
-#for j in range(np.shape(uas)[0]):
-#  Phi_uas_sh[j], Phi_uas_nh[j] = pyt.TropD_Metric_UAS(uas[j,:], lat)
-#
-#for j in range(np.shape(uas_ANN)[0]):
-#  Phi_uas_sh_ANN[j], Phi_uas_nh_ANN[j] = pyt.TropD_Metric_UAS(uas_ANN[j,:], lat)
-#  Phi_Uas_sh_ANN[j], Phi_Uas_nh_ANN[j] = pyt.TropD_Metric_UAS(U_ANN[j,:], lat, lev)
-#
-#
-#plt.figure(9)
-#plt.subplot(211)
-#plt.plot(time,Phi_uas_nh,linewidth=2,color=green_color,\
-#    label='Latitude of surface zonal wind zero crossing')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_uas_nh_ANN,linewidth=2,color=blue_color,\
-#    label='Latitude of surface zonal wind zero crossing from annual mean field')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_Uas_nh_ANN,linewidth=2,color=red_color,\
-#    label='Latitude of 850 hPa zonal wind zero crossing from annual mean field')
-#plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_uas_nh, season=np.arange(12)),color='k',linewidth=2,\
-#    label='Latitude of surface zonal wind zero crossing from annual mean of monthly metric')
-#plt.ylabel('NH uas zero-crossing')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(time,Phi_uas_sh,linewidth=2,color=green_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_uas_sh_ANN,linewidth=2,color=blue_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_Uas_sh_ANN,linewidth=2,color=red_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_uas_sh, season=np.arange(12)),color='k',linewidth=2)
-#plt.xlabel('Year')
-#plt.ylabel('SH uas zero-crossing')
-#plt.show()
-#
-### 8) PSL -- Sea-level Pressure Maximum
-## read sea-level pressure ps(time,lat) and latitude
-#f_ps = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/psl.nc'),'r')
-#ps = f_ps.variables['psl'][:].copy()
-#lat = f_ps.variables['lat'][:].copy()
-#f_ps.close()
-#
-#
-##Change axes of ps to be [time, lat]
-#ps = np.transpose(ps, (1,0))
-#
-#ps_DJF = pytf.TropD_Calculate_Mon2Season(ps, season=np.array([0,1,11])) # calculate DJF means
-#ps_JJA = pytf.TropD_Calculate_Mon2Season(ps, season=np.array([5,6,7]))  # calculate JJA means
-#
-#Phi_ps_DJF_nh = np.zeros((np.shape(ps_DJF)[0],)) # latitude of monthly NH max surface pressure
-#Phi_ps_JJA_nh = np.zeros((np.shape(ps_JJA)[0],)) # latitude of monthly NH max surface pressure
-#Phi_ps_DJF_sh = np.zeros((np.shape(ps_DJF)[0],)) # latitude of monthly SH max surface pressure
-#Phi_ps_JJA_sh = np.zeros((np.shape(ps_JJA)[0],)) # latitude of monthly SH max surface pressure
-#
-#for j in range(np.shape(ps_DJF)[0]):
-#  # Default method = 'max'
-#  Phi_ps_DJF_sh[j], Phi_ps_DJF_nh[j] = pyt.TropD_Metric_PSL(ps_DJF[j,:], lat)
-#
-#for j in range(np.shape(ps_JJA)[0]):
-#  Phi_ps_JJA_sh[j], Phi_ps_JJA_nh[j] = pyt.TropD_Metric_PSL(ps_JJA[j,:], lat)
-#
-#plt.figure(10)
-#plt.subplot(211)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_DJF_nh,linewidth=2,color=green_color,\
-#    label='Latitude of max sea-level pressure during DJF')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_JJA_nh,linewidth=2,color=blue_color,\
-#    label='Latitude of max sea-level pressure during JJA')
-#plt.ylabel('NH max psl latitude')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_DJF_sh,linewidth=2,color=green_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_JJA_sh,linewidth=2,color=blue_color)
-#plt.ylabel('SH max psl latitude')
-#plt.show()
+#*****************************************************************************
+## 7) UAS -- Zonal surface wind subtropical zero crossing latitude
+def UAS(fnameU, fnameUAS, y1, y2, seas):
+
+   #read zonal wind U(time,lat,lev), latitude and level
+   f_U = netcdf.netcdf_file(fnameU,'r')
+   #read zonal mean surface wind U(time,lat)
+   f_uas = netcdf.netcdf_file(fnameUAS,'r')
+   U = f_U.variables['U'][:].copy()
+   uas = f_uas.variables['U10'][:].copy()
+   lat = f_U.variables['lat'][:].copy()
+   lev = f_U.variables['level'][:].copy()
+   f_U.close()
+   
+   U = U[:,:,:,0] # remove longitude dimension (zonal meaned)
+   print(U.shape) # should be (41, 192, 960)
+   
+   #Change axes of u to be [time, lat, lev]
+   U = np.transpose(U, (0,2,1))
+   print('after transpose', U.shape)
+
+   uas = uas[:,:,0] # remove longitude dimension (zonal meaned)
+   print('INITIAL SHAPE ', uas.shape) # should be (960, 192)
+   #uas = np.transpose(uas, (1,0))
+   
+   '''
+   uas_ANN = pytf.TropD_Calculate_Mon2Season(uas, season=np.arange(12))
+   U_ANN = pytf.TropD_Calculate_Mon2Season(U, season=np.arange(12))
+   
+   Phi_uas_nh = np.zeros((np.shape(uas)[0],))         # latitude of NH surface zonal wind metric                        
+   Phi_uas_sh = np.zeros((np.shape(uas)[0],))         # latitude of SH surface zonal wind metric
+   
+   Phi_uas_nh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of NH surface zonal wind metric from annual mean surface zonal wind
+   Phi_uas_sh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of SH surface zonal wind metric from annual mean surface zonal wind
+   Phi_Uas_nh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of NH surface zonal wind metric from annual mean zonal wind (lat,lev)
+   Phi_Uas_sh_ANN = np.zeros((np.shape(uas_ANN)[0],)) # latitude of SH surface zonal wind metric from annual mean zonal wind (lat,lev)
+   
+   for j in range(np.shape(uas)[0]):
+     Phi_uas_sh[j], Phi_uas_nh[j] = pyt.TropD_Metric_UAS(uas[j,:], lat)
+   
+   for j in range(np.shape(uas_ANN)[0]):
+     Phi_uas_sh_ANN[j], Phi_uas_nh_ANN[j] = pyt.TropD_Metric_UAS(uas_ANN[j,:], lat)
+     Phi_Uas_sh_ANN[j], Phi_Uas_nh_ANN[j] = pyt.TropD_Metric_UAS(U_ANN[j,:], lat, lev)
+   '''
+     
+   uas_seas = pytf.TropD_Calculate_Mon2Season(uas, season=dseas[seas]) # calculate seasonal mean
+   U_seas = pytf.TropD_Calculate_Mon2Season(U, season=dseas[seas]) # calculate seasonal mean
+   print(uas_seas)
+   
+   Phi_uas_nh_seas = np.zeros((np.shape(uas_seas)[0],)) # latitude of NH surface zonal wind metric from annual mean surface zonal wind
+   Phi_uas_sh_seas = np.zeros((np.shape(uas_seas)[0],)) # latitude of SH surface zonal wind metric from annual mean surface zonal wind
+   Phi_Uas_nh_seas = np.zeros((np.shape(uas_seas)[0],)) # latitude of NH surface zonal wind metric from annual mean zonal wind (lat,lev)
+   Phi_Uas_sh_seas = np.zeros((np.shape(uas_seas)[0],)) # latitude of SH surface zonal wind metric from annual mean zonal wind (lat,lev)
+   
+   for j in range(np.shape(uas_seas)[0]):
+     Phi_uas_sh_seas[j], Phi_uas_nh_seas[j] = pyt.TropD_Metric_UAS(uas_seas[j,:], lat)
+     Phi_Uas_sh_seas[j], Phi_Uas_nh_seas[j] = pyt.TropD_Metric_UAS(U_seas[j,:], lat, lev)
+
+   # only use 10m U (i.e. UAS) for now
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_Uas_nh_seas)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_Uas_sh_seas)
+   
+   '''
+   plt.figure(9)
+   plt.subplot(211)
+   plt.plot(time,Phi_uas_nh,linewidth=2,color=green_color,\
+       label='Latitude of surface zonal wind zero crossing')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_uas_nh_ANN,linewidth=2,color=blue_color,\
+       label='Latitude of surface zonal wind zero crossing from annual mean field')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_Uas_nh_ANN,linewidth=2,color=red_color,\
+       label='Latitude of 850 hPa zonal wind zero crossing from annual mean field')
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_uas_nh, season=np.arange(12)),color='k',linewidth=2,\
+       label='Latitude of surface zonal wind zero crossing from annual mean of monthly metric')
+   plt.ylabel('NH uas zero-crossing')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(time,Phi_uas_sh,linewidth=2,color=green_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_uas_sh_ANN,linewidth=2,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_Uas_sh_ANN,linewidth=2,color=red_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_uas_sh, season=np.arange(12)),color='k',linewidth=2)
+   plt.xlabel('Year')
+   plt.ylabel('SH uas zero-crossing')
+   plt.show()
+   '''
+   
+   return(slope_NH, slope_SH)
+#*****************************************************************************
+## 8) PSL -- Sea-level Pressure Maximum
+def PSL(fname, y1, y2, seas):
+   # read sea-level pressure ps(time,lat) and latitude
+   f_ps = netcdf.netcdf_file(fname,'r')
+   ps = f_ps.variables['PSL'][:].copy()
+   lat = f_ps.variables['lat'][:].copy()
+   f_ps.close()
+   
+   ps = ps[:,:,0] # remove longitude dimension (zonal meaned)
+   print('INITIAL SHAPE ', ps.shape) # should be (960, 192)
+   
+   ##Change axes of ps to be [time, lat]
+   #ps = np.transpose(ps, (1,0))
+   
+   #ps_DJF = pytf.TropD_Calculate_Mon2Season(ps, season=np.array([0,1,11])) # calculate DJF means
+   #ps_JJA = pytf.TropD_Calculate_Mon2Season(ps, season=np.array([5,6,7]))  # calculate JJA means
+   #
+   #Phi_ps_DJF_nh = np.zeros((np.shape(ps_DJF)[0],)) # latitude of monthly NH max surface pressure
+   #Phi_ps_JJA_nh = np.zeros((np.shape(ps_JJA)[0],)) # latitude of monthly NH max surface pressure
+   #Phi_ps_DJF_sh = np.zeros((np.shape(ps_DJF)[0],)) # latitude of monthly SH max surface pressure
+   #Phi_ps_JJA_sh = np.zeros((np.shape(ps_JJA)[0],)) # latitude of monthly SH max surface pressure
+   #
+   #for j in range(np.shape(ps_DJF)[0]):
+   #  # Default method = 'max'
+   #  Phi_ps_DJF_sh[j], Phi_ps_DJF_nh[j] = pyt.TropD_Metric_PSL(ps_DJF[j,:], lat)
+   #
+   #for j in range(np.shape(ps_JJA)[0]):
+   #  Phi_ps_JJA_sh[j], Phi_ps_JJA_nh[j] = pyt.TropD_Metric_PSL(ps_JJA[j,:], lat)
+   
+   ps_seas = pytf.TropD_Calculate_Mon2Season(ps, season=dseas[seas]) # calculate seasonal mean
+   Phi_ps_seas_nh = np.zeros((np.shape(ps_seas)[0],)) # latitude of monthly NH max surface pressure
+   Phi_ps_seas_sh = np.zeros((np.shape(ps_seas)[0],)) # latitude of monthly SH max surface pressure
+   for j in range(np.shape(ps_seas)[0]):
+     # Default method = 'max'
+     Phi_ps_seas_sh[j], Phi_ps_seas_nh[j] = pyt.TropD_Metric_PSL(ps_seas[j,:], lat)
+
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_ps_seas_nh)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_ps_seas_sh)
+
+   '''
+   plt.figure(10)
+   plt.subplot(211)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_DJF_nh,linewidth=2,color=green_color,\
+       label='Latitude of max sea-level pressure during DJF')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_JJA_nh,linewidth=2,color=blue_color,\
+       label='Latitude of max sea-level pressure during JJA')
+   plt.ylabel('NH max psl latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_DJF_sh,linewidth=2,color=green_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_ps_JJA_sh,linewidth=2,color=blue_color)
+   plt.ylabel('SH max psl latitude')
+   plt.show()
+   '''
+
+   return(slope_NH, slope_SH)
+#*****************************************************************************
+
 #
 ### 9) Compare annual mean metrics
 ##Psi500

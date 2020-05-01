@@ -95,7 +95,7 @@ def TropD_Calculate_Mon2Season(Fm, season=np.arange(12), m=0):
   print('2', Fm.shape)
   F = Fm[m + season[0]::12,...]
   print('3', F.shape)
-  print(F[0,30,35])
+  #print(F[0,30,35])
   if len(season) > 1:
     for s in season[1:]:
       F = F + Fm[m + s::12,...]
