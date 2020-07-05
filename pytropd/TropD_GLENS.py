@@ -33,6 +33,7 @@ dirname = os.path.dirname(__file__)
 #*****************************************************************************
 # 1) PSI -- Streamfunction zero crossing
 def PSI(fname, y1, y2, seas):
+    
    #read meridional velocity V(time,lat,lev), latitude and level
    f_V = netcdf.netcdf_file(fname, 'r')
    V = f_V.variables['V'][:].copy()
@@ -119,79 +120,119 @@ def PSI(fname, y1, y2, seas):
    '''
 
    return (slope_NH, slope_SH)
-#
-#
-### 2) TPB -- Tropopause break latitude
-##read temperature T(time,lat,lev), potential height [m] Z(time,lat,lev), latitude and level
-#f_T = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/ta.nc'),'r')
-#f_Z = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/zg.nc'),'r')
-#T = f_T.variables['ta'][:].copy()
-#Z = f_Z.variables['zg'][:].copy()
-##Change axes of T and Z to be [time, lat, lev]
-#T = np.transpose(T, (2,1,0))
-#Z = np.transpose(Z, (2,1,0))
-#
-#lat = f_T.variables['lat'][:].copy()
-#lev = f_T.variables['lev'][:].copy()
-#f_T.close()
-#f_Z.close()
-#
-#
-#Phi_tpb_nh = np.zeros((np.shape(T)[0],)) # latitude of monthly NH tropopause break
-#Phi_tpb_sh = np.zeros((np.shape(T)[0],)) # latitude of monthly SH tropopause break
-#
-#for j in range(np.shape(T)[0]):
-#  ''' Default method = 'max_gradient'. Latitude of maximal difference between 
-#  potential temperature at the tropopause level and the potential temperature at the surface
-#  '''
-#  Phi_tpb_sh[j], Phi_tpb_nh[j] = pyt.TropD_Metric_TPB(T[j,:,:], lat, lev)
-#
-## Calculate tropopause break from annual mean
-#T_ANN = pytf.TropD_Calculate_Mon2Season(T, season=np.arange(12))
-#Z_ANN = pytf.TropD_Calculate_Mon2Season(Z, season=np.arange(12))
-#
-#Phi_tpb_nh_ANN = np.zeros((np.shape(T_ANN)[0],))  # latitude of NH tropopause break from annual mean T
-#Phi_tpb_sh_ANN = np.zeros((np.shape(T_ANN)[0],))  # latitude of SH tropopause break from annual mean T
-#Phi_tpbZ_nh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of NH tropopause break from annual mean T
-#Phi_tpbZ_sh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of SH tropopause break from annual mean T
-#Phi_tpbT_nh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of NH tropopause break from annual mean T
-#Phi_tpbT_sh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of SH tropopause break from annual mean T
-#
-#for j in range(np.shape(T_ANN)[0]):
-#  # (Default) latitude of maximal poleward gradient
-#  Phi_tpb_sh_ANN[j], Phi_tpb_nh_ANN[j] = pyt.TropD_Metric_TPB(T_ANN[j,:,:], lat, lev, method='max_gradient')
-#  # latitude of maximal difference in potential temperature between the tropopase and surface 
-#  Phi_tpbT_sh_ANN[j], Phi_tpbT_nh_ANN[j] = pyt.TropD_Metric_TPB(T_ANN[j,:,:], lat, lev, method='max_potemp')
-#  # CutoffHeight = 15km marks the height of the tropopause break
-#  Phi_tpbZ_sh_ANN[j], Phi_tpbZ_nh_ANN[j] = pyt.TropD_Metric_TPB(T_ANN[j,:,:], lat, lev, method='cutoff',\
-#                                                           Z=Z_ANN[j,:,:,], Cutoff=15*1000)
-#
-#plt.figure(3)
-#plt.subplot(211)
-#plt.plot(time,Phi_tpb_nh,linewidth=1,color=green_color, \
-#    label='Latitude of tropopause break from monthly mean T -- potential temperature difference')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpb_nh_ANN,linewidth=2,color=blue_color,
-#    label='Latitude of tropopause break from annual mean T -- maximal gradient')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbZ_nh_ANN,linestyle='--',linewidth=1,color=blue_color,\
-#    label='Latitude of tropopause break from annual mean T -- 15km cutoff height')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbT_nh_ANN,linestyle='--',linewidth=1,color=red_color,\
-#    label='Latitude of tropopause break from annual mean T -- potential temperature difference')
-#plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_tpb_nh, season=np.arange(12)),color='k',linewidth=2,\
-#    label='Latitude of tropopause break from annual mean of monthly metric values -- potential temperature difference')
-#plt.title(r'NH tropopause break')
-#plt.ylabel('latitude')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(time,Phi_tpb_sh,linewidth=1,color=green_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpb_sh_ANN,linewidth=2,color=blue_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbZ_sh_ANN,linestyle='--',linewidth=1,color=blue_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbT_sh_ANN,linestyle='--',linewidth=1,color=red_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_tpb_sh, season=np.arange(12)),color='k',linewidth=2)
-#plt.xlabel('Year')
-#plt.title(r'SH tropopause break')
-#plt.ylabel('latitude')
-#plt.show()
-#
+
+
+# 2) TPB -- Tropopause break latitude
+#*****************************************************************************
+def TPB(fnameT, fnameZ, y1, y2, seas):
+
+   #read temperature T(time,lat,lev), potential height [m] Z(time,lat,lev), latitude and level
+   f_T = netcdf.netcdf_file(fnameT,'r')
+   #f_Z = netcdf.netcdf_file(fnameZ,'r')
+   T = f_T.variables['T'][:].copy()
+   #Z = f_Z.variables['Z3'][:].copy()
+   #Change axes of T and Z to be [time, lat, lev]
+   #T = np.transpose(T, (2,1,0))
+   #Z = np.transpose(Z, (2,1,0))
+   
+   lat = f_T.variables['lat'][:].copy()
+   lev = f_T.variables['level'][:].copy()
+   f_T.close()
+   #f_Z.close()
+   
+   T = T[:,:,:,0] # remove longitude dimension (zonal meaned)
+   #Z = Z[:,:,:,0] # remove longitude dimension (zonal meaned)
+   #print(T.shape, Z.shape) # should be (41, 192, 960)
+   
+   #Change axes of u to be [time, lat, lev]
+   T = np.transpose(T, (0,2,1))
+   #Z = np.transpose(Z, (0,2,1))
+   #print('after transpose', T.shape, Z.shape)
+   
+   
+   #Phi_tpb_nh = np.zeros((np.shape(T)[0],)) # latitude of monthly NH tropopause break
+   #Phi_tpb_sh = np.zeros((np.shape(T)[0],)) # latitude of monthly SH tropopause break
+   
+   #for j in range(np.shape(T)[0]):
+   #  ''' Default method = 'max_gradient'. Latitude of maximal difference between 
+   #  potential temperature at the tropopause level and the potential temperature at the surface
+   #  '''
+   #  Phi_tpb_sh[j], Phi_tpb_nh[j] = pyt.TropD_Metric_TPB(T[j,:,:], lat, lev)
+   
+   '''
+   # Calculate tropopause break from annual mean
+   T_ANN = pytf.TropD_Calculate_Mon2Season(T, season=np.arange(12))
+   Z_ANN = pytf.TropD_Calculate_Mon2Season(Z, season=np.arange(12))
+   
+   Phi_tpb_nh_ANN = np.zeros((np.shape(T_ANN)[0],))  # latitude of NH tropopause break from annual mean T
+   Phi_tpb_sh_ANN = np.zeros((np.shape(T_ANN)[0],))  # latitude of SH tropopause break from annual mean T
+   Phi_tpbZ_nh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of NH tropopause break from annual mean T
+   Phi_tpbZ_sh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of SH tropopause break from annual mean T
+   Phi_tpbT_nh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of NH tropopause break from annual mean T
+   Phi_tpbT_sh_ANN = np.zeros((np.shape(T_ANN)[0],)) # latitude of SH tropopause break from annual mean T
+   
+   for j in range(np.shape(T_ANN)[0]):
+     # (Default) latitude of maximal poleward gradient
+     Phi_tpb_sh_ANN[j], Phi_tpb_nh_ANN[j] = pyt.TropD_Metric_TPB(T_ANN[j,:,:], lat, lev, method='max_gradient')
+     # latitude of maximal difference in potential temperature between the tropopase and surface 
+     Phi_tpbT_sh_ANN[j], Phi_tpbT_nh_ANN[j] = pyt.TropD_Metric_TPB(T_ANN[j,:,:], lat, lev, method='max_potemp')
+     # CutoffHeight = 15km marks the height of the tropopause break
+     Phi_tpbZ_sh_ANN[j], Phi_tpbZ_nh_ANN[j] = pyt.TropD_Metric_TPB(T_ANN[j,:,:], lat, lev, method='cutoff',\
+                                                              Z=Z_ANN[j,:,:,], Cutoff=15*1000)
+   '''
+   # Calculate metric from seasonal mean
+   T_seas = pytf.TropD_Calculate_Mon2Season(T, season=dseas[seas])
+   #Z_seas = pytf.TropD_Calculate_Mon2Season(Z, season=dseas[seas])
+   
+   Phi_tpb_nh_seas = np.zeros((np.shape(T_seas)[0],))  # latitude of NH tropopause break from annual mean T
+   Phi_tpb_sh_seas = np.zeros((np.shape(T_seas)[0],))  # latitude of SH tropopause break from annual mean T
+   Phi_tpbZ_nh_seas = np.zeros((np.shape(T_seas)[0],)) # latitude of NH tropopause break from annual mean T
+   Phi_tpbZ_sh_seas = np.zeros((np.shape(T_seas)[0],)) # latitude of SH tropopause break from annual mean T
+   Phi_tpbT_nh_seas = np.zeros((np.shape(T_seas)[0],)) # latitude of NH tropopause break from annual mean T
+   Phi_tpbT_sh_seas = np.zeros((np.shape(T_seas)[0],)) # latitude of SH tropopause break from annual mean T
+   
+   for j in range(np.shape(T_seas)[0]):
+     # (Default) latitude of maximal poleward gradient
+     Phi_tpb_sh_seas[j], Phi_tpb_nh_seas[j] = pyt.TropD_Metric_TPB(T_seas[j,:,:], lat, lev, method='max_gradient')
+     # latitude of maximal difference in potential temperature between the tropopase and surface 
+     #Phi_tpbT_sh_seas[j], Phi_tpbT_nh_seas[j] = pyt.TropD_Metric_TPB(T_seas[j,:,:], lat, lev, method='max_potemp')
+     # CutoffHeight = 15km marks the height of the tropopause break
+     #Phi_tpbZ_sh_seas[j], Phi_tpbZ_nh_seas[j] = pyt.TropD_Metric_TPB(T_seas[j,:,:], lat, lev, method='cutoff',\
+                                                              #Z=Z_seas[j,:,:,], Cutoff=15*1000)  
+   
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_tpb_nh_seas)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_tpb_sh_seas)
+   
+   '''
+   plt.figure(3)
+   plt.subplot(211)
+   plt.plot(time,Phi_tpb_nh,linewidth=1,color=green_color, \
+       label='Latitude of tropopause break from monthly mean T -- potential temperature difference')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpb_nh_ANN,linewidth=2,color=blue_color,
+       label='Latitude of tropopause break from annual mean T -- maximal gradient')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbZ_nh_ANN,linestyle='--',linewidth=1,color=blue_color,\
+       label='Latitude of tropopause break from annual mean T -- 15km cutoff height')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbT_nh_ANN,linestyle='--',linewidth=1,color=red_color,\
+       label='Latitude of tropopause break from annual mean T -- potential temperature difference')
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_tpb_nh, season=np.arange(12)),color='k',linewidth=2,\
+       label='Latitude of tropopause break from annual mean of monthly metric values -- potential temperature difference')
+   plt.title(r'NH tropopause break')
+   plt.ylabel('latitude')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(time,Phi_tpb_sh,linewidth=1,color=green_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpb_sh_ANN,linewidth=2,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbZ_sh_ANN,linestyle='--',linewidth=1,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_tpbT_sh_ANN,linestyle='--',linewidth=1,color=red_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_tpb_sh, season=np.arange(12)),color='k',linewidth=2)
+   plt.xlabel('Year')
+   plt.title(r'SH tropopause break')
+   plt.ylabel('latitude')
+   plt.show()
+   '''
+
+   return (slope_NH, slope_SH)
+
 #*****************************************************************************
 #3) OLR -- OLR cutoff
 def OLR(fnameOLR, fnameOLRCS, y1, y2, seas):
@@ -440,60 +481,86 @@ def EDJ(fname, y1, y2, seas):
    return (slope_NH, slope_SH)
 #*****************************************************************************
 
-### 6) PE -- Precipitation minus evaporation subtropical zero crossing latitude
-## read zonal mean monthly precipitation pr(time,lat)
-#f_pr = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/pr.nc'),'r')
-## read zonal mean monthly evaporation drived from surface latent heat flux hfls(time,lat)
-#f_er = netcdf.netcdf_file(os.path.join(dirname, '../ValidationData/hfls.nc'),'r')
-##Latent heat of vaporization
-#L = 2510400.0
-#
-#pr = f_pr.variables['pr'][:].copy()
-#er = -f_er.variables['hfls'][:].copy()/L
-#PE = pr - er 
-#
-#lat = f_pr.variables['lat'][:].copy()
-#f_pr.close()
-#f_er.close()
-#
-#
-##Change axes of pr and er to be [time, lat]
-#PE = np.transpose(PE, (1,0))
-#
-#PE_ANN = pytf.TropD_Calculate_Mon2Season(PE, season=np.arange(12))
-#
-#Phi_pe_nh = np.zeros((np.shape(PE)[0],))         # latitude of NH PminusE metric
-#Phi_pe_sh = np.zeros((np.shape(PE)[0],))         # latitude of SH PminusE metri
-#
-#Phi_pe_nh_ANN = np.zeros((np.shape(PE_ANN)[0],)) # latitude of NH PminusE metric from annual mean PminusE
-#Phi_pe_sh_ANN = np.zeros((np.shape(PE_ANN)[0],)) # latitude of SH PminusE metric from annual mean PminusE
-#
-#for j in range(np.shape(PE)[0]):
-#  # Default method = 'zero_crossing'
-#  Phi_pe_sh[j], Phi_pe_nh[j] = pyt.TropD_Metric_PE(PE[j,:], lat)
-#
-#for j in range(np.shape(PE_ANN)[0]):
-#  Phi_pe_sh_ANN[j], Phi_pe_nh_ANN[j] = pyt.TropD_Metric_PE(PE_ANN[j,:], lat)
-#
-#plt.figure(8)
-#plt.subplot(211)
-#plt.plot(time,Phi_pe_nh,linewidth=2,color=green_color,\
-#    label='Latitude of P minus E zero-crossing')
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_pe_nh_ANN,linewidth=2,color=blue_color,\
-#    label='Latitude of P minus E zero-crossing from annual mean field')
-#plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_pe_nh, season=np.arange(12)),color='k',linewidth=2,\
-#    label='Latitude of P minus E zero-crossing from annual mean of monthly metric')
-#plt.ylabel('NH P - E zero-crossing')
-#plt.legend(loc='best', frameon=False)
-#plt.subplot(212)
-#plt.plot(time,Phi_pe_sh,linewidth=2,color=green_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,Phi_pe_sh_ANN,linewidth=2,color=blue_color)
-#plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_pe_sh, season=np.arange(12)),color='k',linewidth=2)
-#plt.xlabel('Year')
-#plt.ylabel('SH P - E zero-crossing')
-#plt.show()
-#
-#
+# 6) PE -- Precipitation minus evaporation subtropical zero crossing latitude
+def PE(fnamePRC, fnamePRL, fnameER, y1, y2, seas):
+
+   # read zonal mean monthly precipitation pr(time,lat)
+   f_prc = netcdf.netcdf_file(fnamePRC,'r')
+   f_prl = netcdf.netcdf_file(fnamePRL,'r')
+   # read zonal mean monthly evaporation drived from surface latent heat flux hfls(time,lat)
+   f_er = netcdf.netcdf_file(fnameER,'r')
+   #Latent heat of vaporization
+   L = 2510400.0
+   
+   prc = f_prc.variables['PRECC'][:].copy()
+   prl = f_prl.variables['PRECL'][:].copy()
+   pr = (prc + prl)*1000. # need in kg/m2/s; have m/s
+   er = -f_er.variables['LHFLX'][:].copy()/L
+   PE = pr - er 
+   #print(er)
+   
+   lat = f_prc.variables['lat'][:].copy()
+   f_prc.close()
+   f_prl.close()
+   f_er.close()
+   
+   #print(PE)
+   #Change axes of pr and er to be [time, lat]
+   PE = PE[:,:,0]
+   #PE = np.transpose(PE, (1,0))
+   print('INITIAL SHAPE ', PE.shape) # should be (960, 192)
+   print(PE[0,:])
+   
+   '''
+   PE_ANN = pytf.TropD_Calculate_Mon2Season(PE, season=np.arange(12))
+   
+   Phi_pe_nh = np.zeros((np.shape(PE)[0],))         # latitude of NH PminusE metric
+   Phi_pe_sh = np.zeros((np.shape(PE)[0],))         # latitude of SH PminusE metri
+   
+   Phi_pe_nh_ANN = np.zeros((np.shape(PE_ANN)[0],)) # latitude of NH PminusE metric from annual mean PminusE
+   Phi_pe_sh_ANN = np.zeros((np.shape(PE_ANN)[0],)) # latitude of SH PminusE metric from annual mean PminusE
+   
+   for j in range(np.shape(PE)[0]):
+     # Default method = 'zero_crossing'
+     Phi_pe_sh[j], Phi_pe_nh[j] = pyt.TropD_Metric_PE(PE[j,:], lat)
+   
+   for j in range(np.shape(PE_ANN)[0]):
+     Phi_pe_sh_ANN[j], Phi_pe_nh_ANN[j] = pyt.TropD_Metric_PE(PE_ANN[j,:], lat)
+   '''
+
+   PE_seas = pytf.TropD_Calculate_Mon2Season(PE, season=dseas[seas])
+   
+   Phi_pe_nh_seas = np.zeros((np.shape(PE_seas)[0],)) # latitude of NH PminusE metric from annual mean PminusE
+   Phi_pe_sh_seas = np.zeros((np.shape(PE_seas)[0],)) # latitude of SH PminusE metric from annual mean PminusE
+   
+   for j in range(np.shape(PE_seas)[0]):
+     Phi_pe_sh_seas[j], Phi_pe_nh_seas[j] = pyt.TropD_Metric_PE(PE_seas[j,:], lat)
+
+   slope_NH, intercept_NH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_pe_nh_seas)
+   slope_SH, intercept_SH, clim, ttest = pytf.regress(np.arange(y1,y2+1), Phi_pe_sh_seas)
+   
+   '''
+   plt.figure(8)
+   plt.subplot(211)
+   plt.plot(time,Phi_pe_nh,linewidth=2,color=green_color,\
+       label='Latitude of P minus E zero-crossing')
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_pe_nh_ANN,linewidth=2,color=blue_color,\
+       label='Latitude of P minus E zero-crossing from annual mean field')
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_pe_nh, season=np.arange(12)),color='k',linewidth=2,\
+       label='Latitude of P minus E zero-crossing from annual mean of monthly metric')
+   plt.ylabel('NH P - E zero-crossing')
+   plt.legend(loc='best', frameon=False)
+   plt.subplot(212)
+   plt.plot(time,Phi_pe_sh,linewidth=2,color=green_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,Phi_pe_sh_ANN,linewidth=2,color=blue_color)
+   plt.plot(np.arange(y1,y2+1) + 0.5,pytf.TropD_Calculate_Mon2Season(Phi_pe_sh, season=np.arange(12)),color='k',linewidth=2)
+   plt.xlabel('Year')
+   plt.ylabel('SH P - E zero-crossing')
+   plt.show()
+   '''
+
+   return(slope_NH, slope_SH)
+
 #*****************************************************************************
 ## 7) UAS -- Zonal surface wind subtropical zero crossing latitude
 def UAS(fnameU, fnameUAS, y1, y2, seas):

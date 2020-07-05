@@ -18,7 +18,7 @@ mpl.rcParams['mathtext.fontset'] = 'stixsans'
 ## Set display and meta parameters
 y1 = 2020
 y2 = 2099
-seas = 'MAM'
+seas = 'JJA'
     
 #*****************************************************************************
 def boxstats(x):
@@ -171,6 +171,7 @@ def add_boxplot(data, xpos, ax, metric):
     #ax.set_xticklabels(xpos, metric)
     
 #*****************************************************************************
+
 # 1) EDJ
 PSI_slopes_NH = []
 PSI_slopes_SH = []
@@ -185,6 +186,25 @@ PSI_boxstats_SH = boxstats(PSI_slopes_SH)
 
 add_boxplot(PSI_boxstats_NH, 1, ax1, 'PSI')
 add_boxplot(PSI_boxstats_SH, 1, ax2, 'PSI')
+
+'''
+#*****************************************************************************
+# 2) TPB
+TPB_slopes_NH = []
+TPB_slopes_SH = []
+for i in range(1,21):
+    fnameT = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.T.202001-209912.netCDF3.nc'
+    fnameZ = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/p.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.Z3.202001-209912.nc'
+    slope_NH, slope_SH = TropD_GLENS.TPB(fnameT, fnameZ, y1, y2, seas)
+    TPB_slopes_NH.append(slope_NH*10)
+    TPB_slopes_SH.append(slope_SH*10)
+
+TPB_boxstats_NH = boxstats(TPB_slopes_NH)
+TPB_boxstats_SH = boxstats(TPB_slopes_SH)
+
+add_boxplot(TPB_boxstats_NH, 2, ax1, 'TPB')
+add_boxplot(TPB_boxstats_SH, 2, ax2, 'TPB')
+'''
 
 #*****************************************************************************
 # 3) UAS
@@ -234,7 +254,26 @@ EDJ_boxstats_SH = boxstats(EDJ_slopes_SH)
 
 add_boxplot(EDJ_boxstats_NH, 5, ax1, 'EDJ')
 add_boxplot(EDJ_boxstats_SH, 5, ax2, 'EDJ')
+'''
+#*****************************************************************************
+# 6) P-E
+PE_slopes_NH = []
+PE_slopes_SH = []
+for i in range(1,2):
+    fnamePRC = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.PRECC.202001-209912.netCDF3.nc'
+    fnamePRL = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.PRECL.202001-209912.netCDF3.nc'    
+    fnameER = '/Volumes/Data-Banerjee3TB/CESM-GLENS/GLENS/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'/atm/proc/tseries/month_1/Combined/b.e15.B5505C5WCCML45BGCR.f09_g16.feedback.0'+str(i).zfill(2)+'.cam.h0zm.LHFLX.202001-209912.netCDF3.nc'
+    slope_NH, slope_SH = TropD_GLENS.PE(fnamePRC, fnamePRL, fnameER, y1, y2, seas)
+    PE_slopes_NH.append(slope_NH*10)
+    PE_slopes_SH.append(slope_SH*10)
 
+PE_boxstats_NH = boxstats(PE_slopes_NH)
+PE_boxstats_SH = boxstats(PE_slopes_SH)
+
+add_boxplot(PE_boxstats_NH, 6, ax1, 'P-E')
+add_boxplot(PE_boxstats_SH, 6, ax2, 'P-E')
+
+'''
 #*****************************************************************************
 # 7) UAS
 UAS_slopes_NH = []
@@ -267,6 +306,7 @@ PSL_boxstats_SH = boxstats(PSL_slopes_SH)
 
 add_boxplot(PSL_boxstats_NH, 8, ax1, 'PSL')
 add_boxplot(PSL_boxstats_SH, 8, ax2, 'PSL')
+
 
 #*****************************************************************************
 
